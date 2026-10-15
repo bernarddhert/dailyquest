@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Quest</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Quest">
+<meta name="theme-color" content="#5b5bf0">
+<style>
+:root{--bg:#f4f5fa;--card:#fff;--text:#161826;--mute:#6b6f85;--acc:#5b5bf0;--ok:#16a34a;--bar:#e3e5f0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1020;--card:#181b30;--text:#eceefb;--mute:#8d92b3;--acc:#8b8bff;--ok:#34d399;--bar:#272b48}}
+:root[data-theme="dark"]{--bg:#0e1020;--card:#181b30;--text:#eceefb;--mute:#8d92b3;--acc:#8b8bff;--ok:#34d399;--bar:#272b48}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0}h2{font-size:15px;margin:20px 0 8px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px}
+.top{display:flex;gap:10px}.top .card{flex:1;text-align:center;margin:0}.big{font-size:24px;font-weight:700}.mute{color:var(--mute);font-size:13px}
+.row{display:flex;justify-content:space-between;align-items:baseline}
+.bar{height:10px;background:var(--bar);border-radius:6px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--acc);transition:width .2s}
+.done .bar i{background:var(--ok)}.done b{color:var(--ok)}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+button{font:inherit;border:0;border-radius:10px;padding:8px 12px;background:var(--bar);color:var(--text);cursor:pointer}
+button.p{background:var(--acc);color:#fff}
+input{font:inherit;width:90px;padding:8px;border-radius:10px;border:1px solid var(--bar);background:var(--bg);color:var(--text)}
+.banner{background:var(--ok);color:#fff;text-align:center;border-radius:14px;padding:12px;margin:10px 0;font-weight:700}
+.hist{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bar);font-size:14px}
+.tabs{display:flex;gap:6px;margin:12px 0}.tabs button{flex:1}.tabs button.on{background:var(--acc);color:#fff}
+.set{display:flex;justify-content:space-between;align-items:center;margin:8px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>⚔️ Daily Quest</h1>
+<div class="mute" id="date"></div>
+<div class="tabs"><button data-t="today" class="on">Today</button><button data-t="stats">Stats</button><button data-t="hist">History</button><button data-t="set">Settings</button></div>
+<div id="view"></div>
+</main>
+<script>
+const Q=[{k:'pushups',n:'Push-ups',u:'',s:'Strength',add:[10,25]},{k:'situps',n:'Sit-ups',u:'',s:'Strength',add:[10,25]},{k:'squats',n:'Squats',u:'',s:'Agility',add:[10,25]},{k:'run',n:'Run',u:' km',s:'Vitality',add:[1,2.5]},{k:'cycle',n:'Cycling',u:' km',s:'Endurance',add:[1,5]}];
+const DEF={pushups:100,situps:100,squats:100,run:5,cycle:10};
+let S={targets:{...DEF},days:{}},tab='today';
+try{const r=localStorage.getItem('dq1');if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const save=()=>{try{localStorage.setItem('dq1',JSON.stringify(S))}catch(e){}};
+const ds=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+const today=()=>ds(new Date());
+const day=d=>S.days[d]||(S.days[d]={});
+const val=(d,k)=>(S.days[d]&&S.days[d][k])||0;
+const tgt=(d,k)=>(S.days[d]&&S.days[d].t&&S.days[d].t[k])||S.targets[k];
+const complete=d=>Q.every(q=>val(d,q.k)>=tgt(d,q.k));
+const fmt=n=>Math.round(n*10)/10;
+function xp(){let t=0;for(const d in S.days){for(const q of Q)if(val(d,q.k)>=tgt(d,q.k))t+=20;if(complete(d))t+=50}return t}
+const lvl=x=>Math.floor(Math.sqrt(x/100))+1;
+function streak(){let n=0,d=new Date();if(!complete(ds(d)))d.setDate(d.getDate()-1);while(complete(ds(d))){n++;d.setDate(d.getDate()-1)}return n}
+function add(k,v){const d=today(),o=day(d);if(!o.t)o.t={...S.targets};o[k]=Math.max(0,fmt((o[k]||0)+v));save();render()}
+function render(){
+ document.getElementById('date').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
+ document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+ const v=document.getElementById('view'),d=today(),X=xp();let h='';
+ if(tab==='today'){
+  h+=`<div class="top"><div class="card"><div class="big">${lvl(X)}</div><div class="mute">Level</div></div><div class="card"><div class="big">${streak()}🔥</div><div class="mute">Streak</div></div><div class="card"><div class="big">${X}</div><div class="mute">XP</div></div></div>`;
+  if(complete(d))h+='<div class="banner">Quest complete! +70 XP</div>';
+  h+='<h2>Today</h2>';
+  for(const q of Q){const a=val(d,q.k),t=tgt(d,q.k),p=Math.min(100,a/t*100);
+   h+=`<div class="card ${a>=t?'done':''}"><div class="row"><b>${q.n}</b><span>${fmt(a)} / ${t}${q.u}</span></div><div class="bar"><i style="width:${p}%"></i></div><div class="btns">${q.add.map(n=>`<button data-a="${q.k}" data-v="${n}">+${n}</button>`).join('')}<input type="number" step="any" placeholder="amount" id="i-${q.k}"><button class="p" data-c="${q.k}">Add</button><button data-a="${q.k}" data-v="-${q.add[0]}">−${q.add[0]}</button></div></div>`}
+ }
+ if(tab==='stats'){
+  const tot={};for(const q of Q){tot[q.k]=0;for(const x in S.days)tot[q.k]+=val(x,q.k)}
+  const pts={Strength:(tot.pushups+tot.situps)/200,Agility:tot.squats/100,Vitality:tot.run/5,Endurance:tot.cycle/10};
+  h+=`<div class="card"><div class="big">Level ${lvl(X)}</div><div class="mute">${X} XP · next level at ${Math.pow(lvl(X),2)*100} XP</div></div><h2>Stats</h2>`;
+  for(const s in pts)h+=`<div class="card row"><b>${s}</b><span>${1+Math.floor(pts[s])}</span></div>`;
+  h+='<h2>Lifetime totals</h2>';
+  for(const q of Q)h+=`<div class="card row"><span>${q.n}</span><b>${fmt(tot[q.k])}${q.u}</b></div>`;
+ }
+ if(tab==='hist'){
+  const ks=Object.keys(S.days).sort().reverse();
+  h+='<h2>History</h2><div class="card">'+(ks.length?ks.map(x=>`<div class="hist"><span>${x}</span><span>${complete(x)?'✅':'❌'} ${Q.map(q=>fmt(val(x,q.k))).join(' / ')}</span></div>`).join(''):'<span class="mute">Nothing logged yet.</span>')+'</div><div class="mute">Order: push-ups / sit-ups / squats / run / cycle</div>';
+ }
+ if(tab==='set'){
+  h+='<h2>Daily targets</h2><div class="card">'+Q.map(q=>`<div class="set"><span>${q.n}${q.u}</span><input type="number" step="any" data-s="${q.k}" value="${S.targets[q.k]}"></div>`).join('')+'</div><div class="mute">Changes apply from the next day you log.</div><h2>Backup</h2><div class="card"><div class="btns"><button id="exp">Show data</button><button id="imp">Restore</button><button id="rst">Reset all</button></div><textarea id="box" rows="5" style="width:100%;margin-top:8px;display:none;background:var(--bg);color:var(--text);border:1px solid var(--bar);border-radius:10px"></textarea></div>';
+ }
+ v.innerHTML=h;
+}
+document.addEventListener('click',e=>{
+ const t=e.target;
+ if(t.dataset.t){tab=t.dataset.t;render()}
+ else if(t.dataset.a)add(t.dataset.a,+t.dataset.v);
+ else if(t.dataset.c){const i=document.getElementById('i-'+t.dataset.c),n=parseFloat(i.value);if(n)add(t.dataset.c,n)}
+ else if(t.id==='exp'){const b=document.getElementById('box');b.style.display='block';b.value=JSON.stringify(S);b.select()}
+ else if(t.id==='imp'){const b=document.getElementById('box');if(b.style.display==='none'){b.style.display='block';b.value='';b.placeholder='Paste backup, then tap Restore';return}try{S=JSON.parse(b.value);save();render()}catch(x){alert('Invalid data')}}
+ else if(t.id==='rst'){if(confirm('Delete all data?')){S={targets:{...DEF},days:{}};save();render()}}
+});
+document.addEventListener('change',e=>{const k=e.target.dataset.s;if(k){const n=parseFloat(e.target.value);if(n>0){S.targets[k]=n;save()}}});
+render();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+</script>
+</body>
+</html>
